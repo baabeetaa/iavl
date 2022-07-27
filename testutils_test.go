@@ -4,6 +4,7 @@ package iavl
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"runtime"
 	"sort"
 	"testing"
@@ -43,7 +44,13 @@ func b2i(bz []byte) int {
 
 // Construct a MutableTree
 func getTestTree(cacheSize int) (*MutableTree, error) {
-	return NewMutableTreeWithOpts(db.NewMemDB(), cacheSize, nil)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+	if err != nil {
+		panic(err)
+	}
+	return NewMutableTreeWithOpts(pebbledb, cacheSize, nil)
 }
 
 // Convenience for a new node
