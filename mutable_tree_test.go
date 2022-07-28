@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"runtime"
 	"sort"
 	"strconv"
@@ -27,8 +28,10 @@ var (
 )
 
 func setupMutableTree(t *testing.T) *MutableTree {
-	memDB := db.NewMemDB()
-	tree, err := NewMutableTree(memDB, 0)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+	tree, err := NewMutableTree(pebbledb, 0)
 	require.NoError(t, err)
 	return tree
 }
@@ -180,8 +183,10 @@ func TestMutableTree_LoadVersion_Empty(t *testing.T) {
 }
 
 func TestMutableTree_LazyLoadVersion_Empty(t *testing.T) {
-	memDB := db.NewMemDB()
-	tree, err := NewMutableTree(memDB, 0)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+	tree, err := NewMutableTree(pebbledb, 0)
 	require.NoError(t, err)
 
 	version, err := tree.LazyLoadVersion(0)
@@ -199,7 +204,9 @@ func TestMutableTree_LazyLoadVersion_Empty(t *testing.T) {
 func TestMutableTree_DeleteVersionsRange(t *testing.T) {
 	require := require.New(t)
 
-	mdb := db.NewMemDB()
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	mdb, err := db.NewDB(name, db.PebbleDBBackend, dir)
 	tree, err := NewMutableTree(mdb, 0)
 	require.NoError(err)
 	const maxLength = 100
@@ -278,8 +285,10 @@ func TestMutableTree_DeleteVersionsRange(t *testing.T) {
 }
 
 func TestMutableTree_InitialVersion(t *testing.T) {
-	memDB := db.NewMemDB()
-	tree, err := NewMutableTreeWithOpts(memDB, 0, &Options{InitialVersion: 9})
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	mdb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+	tree, err := NewMutableTreeWithOpts(mdb, 0, &Options{InitialVersion: 9})
 	require.NoError(t, err)
 
 	tree.Set([]byte("a"), []byte{0x01})
@@ -293,20 +302,20 @@ func TestMutableTree_InitialVersion(t *testing.T) {
 	assert.EqualValues(t, 10, version)
 
 	// Reloading the tree with the same initial version is fine
-	tree, err = NewMutableTreeWithOpts(memDB, 0, &Options{InitialVersion: 9})
+	tree, err = NewMutableTreeWithOpts(mdb, 0, &Options{InitialVersion: 9})
 	require.NoError(t, err)
 	version, err = tree.Load()
 	require.NoError(t, err)
 	assert.EqualValues(t, 10, version)
 
 	// Reloading the tree with an initial version beyond the lowest should error
-	tree, err = NewMutableTreeWithOpts(memDB, 0, &Options{InitialVersion: 10})
+	tree, err = NewMutableTreeWithOpts(mdb, 0, &Options{InitialVersion: 10})
 	require.NoError(t, err)
 	_, err = tree.Load()
 	require.Error(t, err)
 
 	// Reloading the tree with a lower initial version is fine, and new versions can be produced
-	tree, err = NewMutableTreeWithOpts(memDB, 0, &Options{InitialVersion: 3})
+	tree, err = NewMutableTreeWithOpts(mdb, 0, &Options{InitialVersion: 3})
 	require.NoError(t, err)
 	version, err = tree.Load()
 	require.NoError(t, err)
@@ -347,7 +356,9 @@ func BenchmarkMutableTree_Set(b *testing.B) {
 }
 
 func prepareTree(t *testing.T) *MutableTree {
-	mdb := db.NewMemDB()
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	mdb, err := db.NewDB(name, db.PebbleDBBackend, dir)
 	tree, err := NewMutableTree(mdb, 1000)
 	require.NoError(t, err)
 	for i := 0; i < 100; i++ {
@@ -417,7 +428,9 @@ func TestMutableTree_DeleteVersion(t *testing.T) {
 }
 
 func TestMutableTree_LazyLoadVersionWithEmptyTree(t *testing.T) {
-	mdb := db.NewMemDB()
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	mdb, err := db.NewDB(name, db.PebbleDBBackend, dir)
 	tree, err := NewMutableTree(mdb, 1000)
 	require.NoError(t, err)
 	_, v1, err := tree.SaveVersion()
@@ -439,7 +452,9 @@ func TestMutableTree_LazyLoadVersionWithEmptyTree(t *testing.T) {
 }
 
 func TestMutableTree_SetSimple(t *testing.T) {
-	mdb := db.NewMemDB()
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	mdb, err := db.NewDB(name, db.PebbleDBBackend, dir)
 	tree, err := NewMutableTree(mdb, 0)
 	require.NoError(t, err)
 
@@ -610,7 +625,9 @@ func TestMutableTree_SetRemoveSet(t *testing.T) {
 }
 
 func TestMutableTree_FastNodeIntegration(t *testing.T) {
-	mdb := db.NewMemDB()
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	mdb, err := db.NewDB(name, db.PebbleDBBackend, dir)
 	tree, err := NewMutableTree(mdb, 1000)
 	require.NoError(t, err)
 
@@ -744,7 +761,9 @@ func TestIterator_MutableTree_Invalid(t *testing.T) {
 
 func TestUpgradeStorageToFast_LatestVersion_Success(t *testing.T) {
 	// Setup
-	db := db.NewMemDB()
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	db, err := db.NewDB(name, db.PebbleDBBackend, dir)
 	tree, err := NewMutableTree(db, 1000)
 	require.NoError(t, err)
 
@@ -775,7 +794,9 @@ func TestUpgradeStorageToFast_LatestVersion_Success(t *testing.T) {
 
 func TestUpgradeStorageToFast_AlreadyUpgraded_Success(t *testing.T) {
 	// Setup
-	db := db.NewMemDB()
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	db, err := db.NewDB(name, db.PebbleDBBackend, dir)
 	tree, err := NewMutableTree(db, 1000)
 	require.NoError(t, err)
 
@@ -1149,8 +1170,9 @@ func TestUpgradeStorageToFast_Integration_Upgraded_GetFast_Success(t *testing.T)
 }
 
 func setupTreeAndMirrorForUpgrade(t *testing.T) (*MutableTree, [][]string) {
-	db := db.NewMemDB()
-
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	db, _ := db.NewDB(name, db.PebbleDBBackend, dir)
 	tree, _ := NewMutableTree(db, 0)
 
 	const numEntries = 100
