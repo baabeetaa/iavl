@@ -26,14 +26,15 @@ var random *iavlrand.Rand
 func SetupTest() {
 	random = iavlrand.NewRand()
 	random.Seed(0) // for determinism
-	flag.BoolVar(&testLevelDB, "test.leveldb", false, "test leveldb backend")
+	flag.BoolVar(&testLevelDB, "test.leveldb", true, "test leveldb backend")
 	flag.IntVar(&testFuzzIterations, "test.fuzz-iterations", 100000, "number of fuzz testing iterations")
 	flag.Parse()
 }
 
 func getTestDB() (db.DB, func()) {
 	if testLevelDB {
-		d, err := db.NewGoLevelDB("test", ".")
+		d, err := db.NewDB("test", db.PebbleDBBackend, ".")
+		//d, err := db.NewGoLevelDB("test", ".")
 		if err != nil {
 			panic(err)
 		}
