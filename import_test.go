@@ -1,6 +1,8 @@
 package iavl
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,7 +12,10 @@ import (
 )
 
 func ExampleImporter() {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+	tree, err := NewMutableTree(pebbledb, 0)
 	if err != nil {
 		// handle err
 	}
@@ -41,7 +46,9 @@ func ExampleImporter() {
 		exported = append(exported, node)
 	}
 
-	newTree, err := NewMutableTree(db.NewMemDB(), 0)
+	name2 := fmt.Sprintf("test_%x", randstr(12))
+	pebbledb2, err := db.NewDB(name2, db.PebbleDBBackend, dir)
+	newTree, err := NewMutableTree(pebbledb2, 0)
 	if err != nil {
 		// handle err
 	}
@@ -63,14 +70,22 @@ func ExampleImporter() {
 }
 
 func TestImporter_NegativeVersion(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+
+	tree, err := NewMutableTree(pebbledb, 0)
 	require.NoError(t, err)
 	_, err = tree.Import(-1)
 	require.Error(t, err)
 }
 
 func TestImporter_NotEmpty(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+
+	tree, err := NewMutableTree(pebbledb, 0)
 	require.NoError(t, err)
 	tree.Set([]byte("a"), []byte{1})
 	_, _, err = tree.SaveVersion()
@@ -81,7 +96,9 @@ func TestImporter_NotEmpty(t *testing.T) {
 }
 
 func TestImporter_NotEmptyDatabase(t *testing.T) {
-	db := db.NewMemDB()
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	db, err := db.NewDB(name, db.PebbleDBBackend, dir)
 
 	tree, err := NewMutableTree(db, 0)
 	require.NoError(t, err)
@@ -99,7 +116,11 @@ func TestImporter_NotEmptyDatabase(t *testing.T) {
 }
 
 func TestImporter_NotEmptyUnsaved(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+
+	tree, err := NewMutableTree(pebbledb, 0)
 	require.NoError(t, err)
 	tree.Set([]byte("a"), []byte{1})
 
@@ -126,7 +147,11 @@ func TestImporter_Add(t *testing.T) {
 	for desc, tc := range testcases {
 		tc := tc // appease scopelint
 		t.Run(desc, func(t *testing.T) {
-			tree, err := NewMutableTree(db.NewMemDB(), 0)
+			name := fmt.Sprintf("test_%x", randstr(12))
+			dir := os.TempDir()
+			pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+
+			tree, err := NewMutableTree(pebbledb, 0)
 			require.NoError(t, err)
 			importer, err := tree.Import(1)
 			require.NoError(t, err)
@@ -143,7 +168,11 @@ func TestImporter_Add(t *testing.T) {
 }
 
 func TestImporter_Add_Closed(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+
+	tree, err := NewMutableTree(pebbledb, 0)
 	require.NoError(t, err)
 	importer, err := tree.Import(1)
 	require.NoError(t, err)
@@ -155,7 +184,11 @@ func TestImporter_Add_Closed(t *testing.T) {
 }
 
 func TestImporter_Close(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+
+	tree, err := NewMutableTree(pebbledb, 0)
 	require.NoError(t, err)
 	importer, err := tree.Import(1)
 	require.NoError(t, err)
@@ -172,7 +205,11 @@ func TestImporter_Close(t *testing.T) {
 }
 
 func TestImporter_Commit(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+
+	tree, err := NewMutableTree(pebbledb, 0)
 	require.NoError(t, err)
 	importer, err := tree.Import(1)
 	require.NoError(t, err)
@@ -188,7 +225,11 @@ func TestImporter_Commit(t *testing.T) {
 }
 
 func TestImporter_Commit_Closed(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+
+	tree, err := NewMutableTree(pebbledb, 0)
 	require.NoError(t, err)
 	importer, err := tree.Import(1)
 	require.NoError(t, err)
@@ -203,7 +244,11 @@ func TestImporter_Commit_Closed(t *testing.T) {
 }
 
 func TestImporter_Commit_Empty(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+
+	tree, err := NewMutableTree(pebbledb, 0)
 	require.NoError(t, err)
 	importer, err := tree.Import(3)
 	require.NoError(t, err)
@@ -232,7 +277,11 @@ func BenchmarkImport(b *testing.B) {
 	b.StartTimer()
 
 	for n := 0; n < b.N; n++ {
-		newTree, err := NewMutableTree(db.NewMemDB(), 0)
+		name := fmt.Sprintf("test_%x", randstr(12))
+		dir := os.TempDir()
+		pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+
+		newTree, err := NewMutableTree(pebbledb, 0)
 		require.NoError(b, err)
 		importer, err := newTree.Import(tree.Version())
 		require.NoError(b, err)
