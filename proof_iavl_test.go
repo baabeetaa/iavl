@@ -3,6 +3,7 @@ package iavl
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,7 +13,14 @@ import (
 )
 
 func TestProofOp(t *testing.T) {
-	tree, err := NewMutableTreeWithOpts(db.NewMemDB(), 0, nil)
+	name := fmt.Sprintf("test_%x", randstr(12))
+	dir := os.TempDir()
+	pebbledb, err := db.NewDB(name, db.PebbleDBBackend, dir)
+	if err != nil {
+		panic(err)
+	}
+
+	tree, err := NewMutableTreeWithOpts(pebbledb, 0, nil)
 	require.NoError(t, err)
 	keys := []byte{0x0a, 0x11, 0x2e, 0x32, 0x50, 0x72, 0x99, 0xa1, 0xe4, 0xf7} // 10 total.
 	for _, ikey := range keys {
