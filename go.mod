@@ -50,4 +50,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/tendermint/tm-db => github.com/baabeetaa/tm-db v0.6.7-0.20220728074353-e3f5da3778f0
+replace github.com/tendermint/tm-db => github.com/baabeetaa/tm-db v0.6.7-0.20220728090422-9cc487937df0
